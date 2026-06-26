@@ -34,3 +34,4 @@ Useful terms:
 
 This bundle intentionally excludes local `.env` files, logs, SQLite databases, state files, caches, and scratch experiment output.
 
+External model and messaging API access is disabled in this public bundle. The copied runtime keeps the voice, memory, posture, and eval architecture for study, but the Gemini, DeepSeek, Linq, and Twilio send paths raise before making network requests.

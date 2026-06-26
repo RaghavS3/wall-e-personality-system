@@ -62,30 +62,12 @@ ROOT = Path(__file__).resolve().parent
 DATA_DIR = ROOT / "data"
 STATE_PATH = DATA_DIR / "state.json"
 CONTACTS_DIR = DATA_DIR / "contacts"
-LINQ_API_ROOT = "https://api.linqapp.com/api/partner/v3"
+LINQ_API_ROOT = ""
 
 
 def load_env():
-    path = ROOT / ".env"
-    if path.exists():
-        for raw_line in path.read_text().splitlines():
-            line = raw_line.strip()
-            if line and not line.startswith("#") and "=" in line:
-                key, value = line.split("=", 1)
-                os.environ.setdefault(key.strip(), value.strip().strip("\"'"))
-
-    try:
-        walle_mode()
-    except WalleModeError:
-        raise
-    if not is_production_mode():
-        hermes_env = Path.home() / ".hermes" / ".env"
-        if hermes_env.exists():
-            for raw_line in hermes_env.read_text().splitlines():
-                line = raw_line.strip()
-                if line and not line.startswith("#") and "=" in line:
-                    key, value = line.split("=", 1)
-                    os.environ.setdefault(key.strip(), value.strip().strip("\"'"))
+    """Public article bundle: never load local secret files."""
+    return
 
 
 try:
@@ -636,110 +618,27 @@ def parse_json_response(text):
 
 
 def call_google(model, system, prompt, temperature=0.86, max_tokens=1200):
-    api_key = os.environ.get("GEMINI_API_KEY")
-    if not api_key:
-        raise RuntimeError("GEMINI_API_KEY is not configured")
-    url = (
-        f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
-        f"?key={api_key}"
+    raise RuntimeError(
+        "External model API access is disabled in this public article bundle."
     )
-    payload = {
-        "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-        "systemInstruction": {"parts": [{"text": system}]},
-        "generationConfig": {
-            "temperature": temperature,
-            "topP": 0.9,
-            "maxOutputTokens": max_tokens,
-            "responseMimeType": "application/json",
-        },
-    }
-    request = urllib.request.Request(
-        url,
-        data=json.dumps(payload).encode(),
-        headers={"Content-Type": "application/json"},
-    )
-    
-    retries = 3
-    delay = 1.0
-    for attempt in range(retries):
-        try:
-            with urllib.request.urlopen(request, timeout=75) as response:
-                data = json.loads(response.read())
-            break
-        except urllib.error.HTTPError as error:
-            if error.code in {429, 503} and attempt < retries - 1:
-                time.sleep(delay)
-                delay *= 2.0
-                continue
-            raise
-
-    parts = data.get("candidates", [{}])[0].get("content", {}).get("parts", [])
-    text = "".join(part.get("text", "") for part in parts if not part.get("thought"))
-    if not text:
-        text = "".join(part.get("text", "") for part in parts)
-    if not text:
-        reason = data.get("candidates", [{}])[0].get("finishReason", "unknown")
-        raise RuntimeError(f"model returned no text ({reason})")
-    return text
 
 
 def deepseek_credentials():
-    if os.environ.get("DEEPSEEK_API_KEY"):
-        return os.environ["DEEPSEEK_API_KEY"], os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
-    if is_production_mode():
-        raise RuntimeError("DEEPSEEK_API_KEY is required in production")
-    auth_path = Path.home() / ".hermes" / "auth.json"
-    if not auth_path.exists():
-        raise RuntimeError("DeepSeek credentials are not configured")
-    auth = json.loads(auth_path.read_text())
-    pool = auth.get("credential_pool", {}).get("deepseek", [])
-    if not pool:
-        raise RuntimeError("Hermes has no DeepSeek credential")
-    credential = pool[0]
-    return credential["secret"], credential.get("base_url", "https://api.deepseek.com")
+    raise RuntimeError(
+        "External model API access is disabled in this public article bundle."
+    )
 
 
 def call_deepseek(model, system, prompt, temperature=0.86, max_tokens=1200):
-    api_key, base_url = deepseek_credentials()
-    request = urllib.request.Request(
-        f"{base_url.rstrip('/')}/chat/completions",
-        data=json.dumps(
-            {
-                "model": model,
-                "messages": [
-                    {"role": "system", "content": system},
-                    {"role": "user", "content": prompt},
-                ],
-                "temperature": temperature,
-                "max_tokens": max_tokens,
-                "response_format": {"type": "json_object"},
-            }
-        ).encode(),
-        headers={
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-        },
+    raise RuntimeError(
+        "External model API access is disabled in this public article bundle."
     )
-    retries = 3
-    delay = 1.0
-    for attempt in range(retries):
-        try:
-            with urllib.request.urlopen(request, timeout=75) as response:
-                data = json.loads(response.read())
-            break
-        except urllib.error.HTTPError as error:
-            if error.code in {429, 503} and attempt < retries - 1:
-                time.sleep(delay)
-                delay *= 2.0
-                continue
-            raise
-    return data["choices"][0]["message"]["content"]
 
 
 def call_model(model, system, prompt, temperature=0.86, max_tokens=1200):
-    if model.startswith("deepseek"):
-        return call_deepseek(model, system, prompt, temperature, max_tokens)
-    return call_google(model, system, prompt, temperature, max_tokens)
+    raise RuntimeError(
+        "External model API access is disabled in this public article bundle."
+    )
 
 
 def model_turn(state, message, model, *, strict_model=False, voice_contract=None):
@@ -3476,22 +3375,9 @@ def words(text):
 
 
 def linq_request(method, path, payload=None):
-    token = os.environ.get("LINQ_API_KEY")
-    if not token:
-        raise RuntimeError("LINQ_API_KEY is not configured")
-    body = json.dumps(payload).encode() if payload is not None else None
-    request = urllib.request.Request(
-        f"{LINQ_API_ROOT}{path}",
-        data=body,
-        method=method,
-        headers={
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/json",
-        },
+    raise RuntimeError(
+        "External Linq API access is disabled in this public article bundle."
     )
-    with urllib.request.urlopen(request, timeout=30) as response:
-        raw = response.read()
-    return json.loads(raw) if raw else {}
 
 
 def linq_typing(chat_id):
@@ -3677,32 +3563,9 @@ def parse_twilio_form_params(raw_body):
 
 
 def twilio_send(to_number, text):
-    account_sid = os.environ.get("TWILIO_ACCOUNT_SID", "").strip()
-    auth_token = os.environ.get("TWILIO_AUTH_TOKEN", "").strip()
-    from_number = os.environ.get("TWILIO_FROM_NUMBER", "").strip()
-    if not account_sid or not auth_token or not from_number:
-        raise RuntimeError("Twilio credentials are not configured")
-    recipient = normalize_handle(to_number)
-    payload = urllib.parse.urlencode(
-        {
-            "From": from_number,
-            "To": recipient,
-            "Body": text,
-        }
-    ).encode("utf-8")
-    credentials = base64.b64encode(f"{account_sid}:{auth_token}".encode("utf-8")).decode("ascii")
-    request = urllib.request.Request(
-        f"https://api.twilio.com/2010-04-01/Accounts/{account_sid}/Messages.json",
-        data=payload,
-        method="POST",
-        headers={
-            "Authorization": f"Basic {credentials}",
-            "Content-Type": "application/x-www-form-urlencoded",
-        },
+    raise RuntimeError(
+        "External Twilio API access is disabled in this public article bundle."
     )
-    with urllib.request.urlopen(request, timeout=30) as response:
-        raw = response.read()
-    return json.loads(raw) if raw else {}
 
 
 def transport_send_bubble(chat_id, text, idempotency_key):
