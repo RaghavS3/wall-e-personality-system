@@ -1,0 +1,12 @@
+.DS_Store
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.env
+.env.*
+*.log
+*.db
+data/
+scratch/
+node_modules/
+
